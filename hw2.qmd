@@ -47,7 +47,6 @@ sum(is.na(crashes$POINT_X))
 sum(is.na(crashes$POINT_Y))
 
 # Use POINT_X and POINT_Y as the lat/long (as it has far fewer NAs than the LAT and LONG columns), convert df to sf 
-
 crashes_clean <- crashes |> 
   as_tibble() |> 
   drop_na(POINT_X) |> 
@@ -103,9 +102,20 @@ tm_shape(redline) +
 
 ```{r}
 # Join LA and redline spatial data to create a summary
-
 la_redline <- st_join(los_angeles, redline, join = st_intersects)
 
+# Create the summary data frame 
+la_block_groups <- la_redline |> 
+  st_drop_geometry() |> 
+  mutate(Grade = grade) |> 
+  group_by(Grade) |> 
+  summarize(`Block Count` = n()) |> 
+  mutate(Grade = replace_na(Grade, "Missing")) |> 
+  mutate(`Percentage of Census Blocks` = (`Block Count` / sum(`Block Count`)) * 100)
+
+# Convert the data frame to a table using gt()
+la_block_groups |> 
+  gt()
 ```
 
 ## Map interpretation
