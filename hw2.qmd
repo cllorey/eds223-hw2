@@ -1,0 +1,133 @@
+---
+title: "Homework 2: Exploring patterns of environmental justice"
+subtitle: " "
+author: "Courtney Lorey"
+date: 2026-10-16
+---
+
+# Part 1
+
+## Description
+
+
+## Objective
+
+
+## Load packages
+
+```{r}
+library(here)
+library(tidyverse)
+library(sf)
+library(tmap)
+library(gt)
+```
+
+## Import data 
+
+```{r}
+# Read in geodatabase of EJScreen data at the Census Block Group level
+ejscreen <- sf::st_read(here::here("eds223-hw2", "data", "ejscreen","EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb")) 
+
+# Check ejscreen crs
+st_crs(ejscreen)
+
+# Filter to LA County
+los_angeles <- ejscreen |> 
+  dplyr::filter(ST_ABBREV == "CA") |> 
+  dplyr::filter(CNTY_NAME %in% c("Los Angeles County"))
+
+# Read in crashes data, drop nas, set crs to match that of ejscreen data
+crashes <- read_csv(here::here("eds223-hw2", "data", "SWITRS_LA", "crashes.csv"))
+
+# Check nas in crashes dataframe
+sum(is.na(crashes$LATITUDE))
+sum(is.na(crashes$LONGITUDE))
+sum(is.na(crashes$POINT_X))
+sum(is.na(crashes$POINT_Y))
+
+# Use POINT_X and POINT_Y as the lat/long (as it has far fewer NAs than the LAT and LONG columns), convert df to sf 
+
+crashes_clean <- crashes |> 
+  as_tibble() |> 
+  drop_na(POINT_X) |> 
+  drop_na(POINT_Y) |> 
+  rename(long = POINT_X,
+          lat = POINT_Y) |> 
+  st_as_sf(coords = c("long", "lat"), crs = 3857)
+
+# Read in json file
+redline <- sf::st_read(here::here("eds223-hw2", "data", "mapping-inequality", "mapping-inequality-los-angeles.json"))
+
+# Check that the CRS matches for ejscreen and redline
+if(st_crs(redline) == st_crs(ejscreen)) {
+  print("CRS matches") 
+} else {
+  warning('CRS does not match')
+  print(paste('redline CRS is', st_crs(redline)))
+  print(paste('ejscreen CRS is', st_crs(ejscreen)))
+}
+```
+
+```{r}
+# Update redline crs to match ejscreen and run the test again 
+redline <-st_transform(redline, 3857)
+
+# Check that the CRS matches for ejscreen and redline
+if(st_crs(redline) == st_crs(ejscreen)) {
+  print("CRS matches") 
+} else {
+  warning('CRS does not match')
+  print(paste('redline CRS is', st_crs(redline)))
+  print(paste('ejscreen CRS is', st_crs(ejscreen)))
+}
+```
+
+## Visualize data
+
+```{r}
+  # Create a map of historical redlining neighborhoods, including neighborhoods colored by HOLC grade, an appropriate base map, a clear title and legend 
+
+tm_shape(redline) +
+  tm_basemap("OpenStreetMap") +
+  tm_polygons() + 
+  tm_fill(
+    fill = "grade",
+    fill.legend = tm_legend(title = "HOLC grade", position = tm_pos_out("right"))
+  ) +
+  tm_title(text = "Historical Redlining Neighborhoods in Los Angeles, CA") +
+  tm_compass() +
+  tm_scalebar(position = c("left", "bottom")) +
+  tm_credits("Figure 1", position = tm_pos_out("center", "bottom"));
+```
+
+```{r}
+# Join LA and redline spatial data to create a summary
+
+la_redline <- st_join(los_angeles, redline, join = st_intersects)
+
+```
+
+## Map interpretation
+
+
+
+
+# Part 2
+
+## Description
+
+
+## Objective
+
+
+## Load packages
+
+
+## Import data 
+
+
+## Visualize data
+
+
+## Map interpretation
