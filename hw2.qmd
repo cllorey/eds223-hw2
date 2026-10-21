@@ -6,13 +6,15 @@ date: 2026-10-16
 
 # Part 1
 
-
 ## Objective
-
+Using 2023 data from the United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool as well as data from the Mapping Inequality project at the University of Richmond's Digital Scholarship Lab, this section explores historical redlining in Los Angeles and its legacy on present-day environmental justice.
 
 ## Load packages
 
 ```{r}
+#| echo: true
+#| output: false
+
 library(here)
 library(tidyverse)
 library(sf)
@@ -75,7 +77,7 @@ tm_shape(redline) +
   tm_title(text = "Historical Redlining Neighborhoods in Los Angeles, CA") +
   tm_compass() +
   tm_scalebar(position = c("left", "bottom")) +
-  tm_credits("Figure 1", position = tm_pos_out("center", "bottom"));
+  tm_credits("Map 1", position = tm_pos_out("center", "bottom"));
 ```
 
 ```{r}
@@ -96,11 +98,8 @@ la_block_groups |>
   gt()
 ```
 
-geom_col()
-summarize, take mean, mean on Y, abcd on X 
-
 ```{r}
-# Summarize average conditions by grade & visualize
+# Summarize average conditions by grade
 avg_low_inc <- la_redline |> 
   st_drop_geometry() |> 
   group_by(grade) |> 
@@ -119,6 +118,7 @@ avg_life_exp <-  la_redline |>
   drop_na(grade) |> 
   summarise(avg_pct_life_exp = mean(LIFEEXPPCT, na.rm = TRUE))
 
+# Visualize average conditions by grade
 ggplot(
   data = avg_low_inc,
   mapping = aes(
@@ -129,7 +129,7 @@ ggplot(
 ) + 
 geom_col() + 
 theme_bw() +
-labs(x = "HOLC grade", y = "Mean percent low income", title = "Percent low income by HOLC grade")
+labs(x = "HOLC grade", y = "Mean percent low income", title = "Percent low income by HOLC grade", caption = "Figure 1")
 
 ggplot(
   data = avg_pm25,
@@ -141,7 +141,7 @@ ggplot(
 ) + 
 geom_col() + 
 theme_bw() +
-labs(x = "HOLC grade", y = "Mean percent PM 2.5", title = "Percent PM 2.5 by HOLC grade")
+labs(x = "HOLC grade", y = "Mean percent PM 2.5", title = "Percent PM 2.5 by HOLC grade", caption = "Figure 2")
 
 ggplot(
   data = avg_life_exp,
@@ -153,19 +153,17 @@ ggplot(
 ) + 
 geom_col() + 
 theme_bw() +
-labs(x = "HOLC grade", y = "Mean percent low life expectancy", title = "Percent low life expectancy by HOLC grade")
+labs(x = "HOLC grade", y = "Mean percent low life expectancy", title = "Percent low life expectancy by HOLC grade", caption = "Figure 3")
 ```
 
 ## Map interpretation
 
-Interpret the patterns you observe in your results
-Discuss potential relationships between historical redlining grades and current environmental/socioeconomic conditions
-
+Map 1 utilizes the LA redlining spatial data to visualize the historical redlining neighborhoods across Los Angeles, California. Figures 1-3 utilize 2023 ejscreen data (specifically average percent low income, average percent PM 2.5, and average percent low life expectancy) combined with LA redlining data to look at how these conditions vary by Home Owners’ Loan Corporation (HOLC) grade in LA. Across all three figures, the proportion of negative attributes increases from grade A to grade D - meaning that grade D has the highest average percent of low income, the highest average percent of PM 2.5 pollution, and the highest average percent of low life expectancy, while grade A has the lowest proportion of these negative conditions. This is consistent with the finding that historical redlining practices have negative and lasting consequences on community wealth and community health.
 
 # Part 2
 
 ## Objective
-Explore the legacy of historical redlining in Los Angeles on the report of pedestrian and bike crashes/ fatalities.
+Utilizing data from the Mapping Inequality project at the University of Richmond's Digital Scholarship Lab as well as data from the Statewide Integrated Traffic Records System (SWITRS) database (hosted by the Transportation Information Mapping System (TIMS), developed by UC Berkley SafeTREC), this section explores the legacy of historical redlining in Los Angeles on the occurrence of pedestrian and bike crashes/fatalities from 2020 to 2025. 
 
 ## Import data
 
@@ -177,7 +175,7 @@ sum(is.na(crash_test$POINT_Y))
 sum(is.na(crash_test$LATITUDE))
 sum(is.na(crash_test$LONGITUDE))
 
-# Drop nas, set crs to match that of ejscreen data. Use POINT_X and POINT_Y as the lat/long (as it has far fewer NAs than the LAT and LONG columns), convert df to sf 
+# Use POINT_X and POINT_Y as the lat/long (as it has far fewer NAs than the LAT and LONG columns), drop NAs, convert df to sf, set crs to match that of ejscreen (3857)
 crashes <- read_csv(here::here("eds223-hw2", "data", "SWITRS_LA", "crashes.csv")) |> 
   as_tibble() |> 
   drop_na(POINT_X) |> 
@@ -191,20 +189,48 @@ crashes <- read_csv(here::here("eds223-hw2", "data", "SWITRS_LA", "crashes.csv")
 ## Visualize data
 
 ```{r}
+# Before joining, check that the datasets have matching CRS
+if(st_crs(redline) == st_crs(crashes)) {
+  print("CRS matches") 
+} else {
+  warning('CRS does not match')
+  print(paste('redline CRS is', st_crs(redline)))
+  print(paste('crashes CRS is', st_crs(crashes)))
+}
+
 # Join redline data with crash data
-redline_crashes <- st_join(crashes, la_redline)
+redline_crashes <- st_join(crashes, redline)
 
-# Select relevant columns from crash data 
+# Select relevant columns from crash data
 filtered_redline_crash <- redline_crashes |> 
+  st_drop_geometry() |> 
   mutate(
-    grade = ifelse(is.na(grade), "No HOLC Grade", grade)
+    grade = ifelse(is.na(grade), "HOLC Grade Missing", grade)
   ) |> 
-  select(grade, long, lat, PEDESTRIAN_ACCIDENT, BICYCLE_ACCIDENT, COUNT_PED_KILLED, COUNT_BICYCLIST_KILLED) |> 
-  mutate(
-    PEDESTRIAN_ACCIDENT = ifelse(PEDESTRIAN_ACCIDENT == "Y", 1, 0),
-    BICYCLE_ACCIDENT = ifelse(BICYCLE_ACCIDENT == "Y", 1, 0)
-  )
+  select(grade, long, lat, PEDESTRIAN_ACCIDENT, BICYCLE_ACCIDENT) |> 
+  filter(PEDESTRIAN_ACCIDENT == "Y" | BICYCLE_ACCIDENT == "Y") |> 
+  count(grade) |> 
+  mutate(Percent = (n / sum(n)) * 100)
 
+# Convert the data frame to a table using gt()
+gt(filtered_redline_crash)
+
+# Visualize 
+ggplot(
+  data = filtered_redline_crash,
+  mapping = aes(
+    x = grade,
+    y = Percent, 
+    fill = grade
+  )
+) + 
+geom_col() + 
+theme_bw() +
+labs(x = "HOLC grade", y = "Percent accidents", title = "Percentage of pedestrian and bike crashes and fatalities by HOLC grade", fill = "Grade", caption = "Figure 4")
 ```
 
-## Map interpretation
+## Visualization interpretation
+
+Figure 4 shows that for pedestrian and bike accidents (including crashes and fatalities) that occurred in Los Angeles within a given HOLC-graded area between 2020 and 2025, the largest proportion of accidents occured within HOLC grades C (27%) and D (14%). HOLC grades C and D experienced significantly more accidents than HOLC grades A and B. This demonstrates an outsized occurence of accidents in areas with lower HOLC grades, indicating that these redlined neighborhoods are at a higher risk of accidents, and that highly graded areas are safer from accidents. This is consistent with the finding that historical redlining continues to have detrimental impacts on present-day community health.
+
+It is also worth noting that the majority (52%) of accidents occurred in areas that did not have an assigned HOLC grade (grade was listed as NA in the data set).
