@@ -1,13 +1,10 @@
 ---
 title: "Homework 2: Exploring patterns of environmental justice"
-subtitle: " "
 author: "Courtney Lorey"
 date: 2026-10-16
 ---
 
 # Part 1
-
-## Description
 
 
 ## Objective
@@ -37,24 +34,6 @@ los_angeles <- ejscreen |>
   dplyr::filter(ST_ABBREV == "CA") |> 
   dplyr::filter(CNTY_NAME %in% c("Los Angeles County"))
 
-# Read in crashes data, drop nas, set crs to match that of ejscreen data
-crashes <- read_csv(here::here("eds223-hw2", "data", "SWITRS_LA", "crashes.csv"))
-
-# Check nas in crashes dataframe
-sum(is.na(crashes$LATITUDE))
-sum(is.na(crashes$LONGITUDE))
-sum(is.na(crashes$POINT_X))
-sum(is.na(crashes$POINT_Y))
-
-# Use POINT_X and POINT_Y as the lat/long (as it has far fewer NAs than the LAT and LONG columns), convert df to sf 
-crashes_clean <- crashes |> 
-  as_tibble() |> 
-  drop_na(POINT_X) |> 
-  drop_na(POINT_Y) |> 
-  rename(long = POINT_X,
-          lat = POINT_Y) |> 
-  st_as_sf(coords = c("long", "lat"), crs = 3857)
-
 # Read in json file
 redline <- sf::st_read(here::here("eds223-hw2", "data", "mapping-inequality", "mapping-inequality-los-angeles.json"))
 
@@ -66,9 +45,7 @@ if(st_crs(redline) == st_crs(ejscreen)) {
   print(paste('redline CRS is', st_crs(redline)))
   print(paste('ejscreen CRS is', st_crs(ejscreen)))
 }
-```
 
-```{r}
 # Update redline crs to match ejscreen and run the test again 
 redline <-st_transform(redline, 3857)
 
@@ -81,6 +58,7 @@ if(st_crs(redline) == st_crs(ejscreen)) {
   print(paste('ejscreen CRS is', st_crs(ejscreen)))
 }
 ```
+
 
 ## Visualize data
 
@@ -118,26 +96,115 @@ la_block_groups |>
   gt()
 ```
 
+geom_col()
+summarize, take mean, mean on Y, abcd on X 
+
+```{r}
+# Summarize average conditions by grade & visualize
+avg_low_inc <- la_redline |> 
+  st_drop_geometry() |> 
+  group_by(grade) |> 
+  drop_na(grade) |> 
+  summarise(avg_pct_low_inc = mean(LOWINCPCT, na.rm = TRUE))
+
+avg_pm25 <- la_redline |> 
+  st_drop_geometry() |> 
+  group_by(grade) |> 
+  drop_na(grade) |> 
+  summarise(avg_pct_pm25 = mean(P_PM25, na.rm = TRUE))
+
+avg_life_exp <-  la_redline |> 
+  st_drop_geometry() |> 
+  group_by(grade) |> 
+  drop_na(grade) |> 
+  summarise(avg_pct_life_exp = mean(LIFEEXPPCT, na.rm = TRUE))
+
+ggplot(
+  data = avg_low_inc,
+  mapping = aes(
+    x = grade,
+    y = avg_pct_low_inc, 
+    fill = grade
+  )
+) + 
+geom_col() + 
+theme_bw() +
+labs(x = "HOLC grade", y = "Mean percent low income", title = "Percent low income by HOLC grade")
+
+ggplot(
+  data = avg_pm25,
+  mapping = aes(
+    x = grade,
+    y = avg_pct_pm25, 
+    fill = grade
+  )
+) + 
+geom_col() + 
+theme_bw() +
+labs(x = "HOLC grade", y = "Mean percent PM 2.5", title = "Percent PM 2.5 by HOLC grade")
+
+ggplot(
+  data = avg_life_exp,
+  mapping = aes(
+    x = grade,
+    y = avg_pct_life_exp, 
+    fill = grade
+  )
+) + 
+geom_col() + 
+theme_bw() +
+labs(x = "HOLC grade", y = "Mean percent low life expectancy", title = "Percent low life expectancy by HOLC grade")
+```
+
 ## Map interpretation
 
-
+Interpret the patterns you observe in your results
+Discuss potential relationships between historical redlining grades and current environmental/socioeconomic conditions
 
 
 # Part 2
 
-## Description
-
-
 ## Objective
+Explore the legacy of historical redlining in Los Angeles on the report of pedestrian and bike crashes/ fatalities.
 
+## Import data
 
-## Load packages
+```{r}
+# Read in crashes data, and inspect lat/long columns
+crash_test <- read_csv(here::here("eds223-hw2", "data", "SWITRS_LA", "crashes.csv"))
+sum(is.na(crash_test$POINT_X))
+sum(is.na(crash_test$POINT_Y))
+sum(is.na(crash_test$LATITUDE))
+sum(is.na(crash_test$LONGITUDE))
 
-
-## Import data 
-
+# Drop nas, set crs to match that of ejscreen data. Use POINT_X and POINT_Y as the lat/long (as it has far fewer NAs than the LAT and LONG columns), convert df to sf 
+crashes <- read_csv(here::here("eds223-hw2", "data", "SWITRS_LA", "crashes.csv")) |> 
+  as_tibble() |> 
+  drop_na(POINT_X) |> 
+  drop_na(POINT_Y) |> 
+  rename(long = POINT_X,
+          lat = POINT_Y) |> 
+  st_as_sf(coords = c("long", "lat"), crs = 4326, remove = FALSE) |> 
+  st_transform(crs = 3857)
+```
 
 ## Visualize data
 
+```{r}
+# Join redline data with crash data
+redline_crashes <- st_join(crashes, la_redline)
+
+# Select relevant columns from crash data 
+filtered_redline_crash <- redline_crashes |> 
+  mutate(
+    grade = ifelse(is.na(grade), "No HOLC Grade", grade)
+  ) |> 
+  select(grade, long, lat, PEDESTRIAN_ACCIDENT, BICYCLE_ACCIDENT, COUNT_PED_KILLED, COUNT_BICYCLIST_KILLED) |> 
+  mutate(
+    PEDESTRIAN_ACCIDENT = ifelse(PEDESTRIAN_ACCIDENT == "Y", 1, 0),
+    BICYCLE_ACCIDENT = ifelse(BICYCLE_ACCIDENT == "Y", 1, 0)
+  )
+
+```
 
 ## Map interpretation
