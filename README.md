@@ -7,6 +7,14 @@ This repository contains data and code to explore and visualize the legacy of hi
 This repository is structured as follows:
 
 ```
+.
+├── data
+│   ├── ejscreen
+│   ├── mapping-inequality
+│   └── SWITRS_LA
+├── hw2.pdf
+├── hw2.qmd
+└── README.md
 
 ```
 

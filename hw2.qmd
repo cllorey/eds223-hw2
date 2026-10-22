@@ -1,13 +1,14 @@
 ---
 title: "Homework 2: Exploring patterns of environmental justice"
 author: "Courtney Lorey"
-date: 2026-10-16
+date: 2026-10-21
+format: typst
 ---
 
 # Part 1
 
 ## Objective
-Using 2023 data from the United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool as well as data from the Mapping Inequality project at the University of Richmond's Digital Scholarship Lab, this section explores historical redlining in Los Angeles and its legacy on present-day environmental justice.
+Using 2023 data from the United States Environmental Protection Agency’s former Environmental Justice Screening and Mapping Tool (EJScreen) as well as data from the Mapping Inequality project at the University of Richmond's Digital Scholarship Lab, this section explores historical redlining in Los Angeles and its legacy on present-day environmental justice.
 
 ## Load packages
 
@@ -26,10 +27,7 @@ library(gt)
 
 ```{r}
 # Read in geodatabase of EJScreen data at the Census Block Group level
-ejscreen <- sf::st_read(here::here("eds223-hw2", "data", "ejscreen","EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb")) 
-
-# Check ejscreen crs
-st_crs(ejscreen)
+ejscreen <- sf::st_read("/Users/courtneylorey/Desktop/GitHub/eds223/eds223-hw2/data/ejscreen/EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb") 
 
 # Filter to LA County
 los_angeles <- ejscreen |> 
@@ -37,7 +35,7 @@ los_angeles <- ejscreen |>
   dplyr::filter(CNTY_NAME %in% c("Los Angeles County"))
 
 # Read in json file
-redline <- sf::st_read(here::here("eds223-hw2", "data", "mapping-inequality", "mapping-inequality-los-angeles.json"))
+redline <- sf::st_read("/Users/courtneylorey/Desktop/GitHub/eds223/eds223-hw2/data/mapping-inequality/mapping-inequality-los-angeles.json")
 
 # Check that the CRS matches for ejscreen and redline
 if(st_crs(redline) == st_crs(ejscreen)) {
@@ -91,7 +89,7 @@ la_block_groups <- la_redline |>
   group_by(Grade) |> 
   summarize(`Block Count` = n()) |> 
   mutate(Grade = replace_na(Grade, "Missing")) |> 
-  mutate(`Percentage of Census Blocks` = (`Block Count` / sum(`Block Count`)) * 100)
+  mutate(`% of Census Blocks` = (`Block Count` / sum(`Block Count`)) * 100)
 
 # Convert the data frame to a table using gt()
 la_block_groups |> 
@@ -156,34 +154,34 @@ theme_bw() +
 labs(x = "HOLC grade", y = "Mean percent low life expectancy", title = "Percent low life expectancy by HOLC grade", caption = "Figure 3")
 ```
 
-## Map interpretation
+## Interpretation
 
-Map 1 utilizes the LA redlining spatial data to visualize the historical redlining neighborhoods across Los Angeles, California. Figures 1-3 utilize 2023 ejscreen data (specifically average percent low income, average percent PM 2.5, and average percent low life expectancy) combined with LA redlining data to look at how these conditions vary by Home Owners’ Loan Corporation (HOLC) grade in LA. Across all three figures, the proportion of negative attributes increases from grade A to grade D - meaning that grade D has the highest average percent of low income, the highest average percent of PM 2.5 pollution, and the highest average percent of low life expectancy, while grade A has the lowest proportion of these negative conditions. This is consistent with the finding that historical redlining practices have negative and lasting consequences on community wealth and community health.
+Map 1 utilizes the Los Angeles redlining spatial data to visualize the historical redlining neighborhoods across Los Angeles, California. Figures 1-3 utilize 2023 EJScreen data (specifically average percent low income, average percent PM 2.5 pollution, and average percent low life expectancy) combined with Los Angeles redlining data to look at how these conditions vary by Home Owners’ Loan Corporation (HOLC) grade in LA. Across all three figures, the proportion of negative attributes increases from grade A to grade D - meaning that grade D has the highest average percent of low income, the highest average percent of PM 2.5 pollution, and the highest average percent of low life expectancy, while grade A has the lowest proportion of these negative conditions. This is consistent with the finding that historical redlining practices have negative and lasting consequences on community wealth and community health.
 
 # Part 2
 
 ## Objective
-Utilizing data from the Mapping Inequality project at the University of Richmond's Digital Scholarship Lab as well as data from the Statewide Integrated Traffic Records System (SWITRS) database (hosted by the Transportation Information Mapping System (TIMS), developed by UC Berkley SafeTREC), this section explores the legacy of historical redlining in Los Angeles on the occurrence of pedestrian and bike crashes/fatalities from 2020 to 2025. 
+Utilizing data from the Mapping Inequality project at the University of Richmond's Digital Scholarship Lab as well as data from the Statewide Integrated Traffic Records System (SWITRS) database, this section explores the legacy of historical redlining in Los Angeles on the occurrence of pedestrian and bike crashes/fatalities from 2020 to 2025. 
 
 ## Import data
 
 ```{r}
 # Read in crashes data, and inspect lat/long columns
-crash_test <- read_csv(here::here("eds223-hw2", "data", "SWITRS_LA", "crashes.csv"))
+crash_test <- read_csv("/Users/courtneylorey/Desktop/GitHub/eds223/eds223-hw2/data/SWITRS_LA/Crashes.csv")
 sum(is.na(crash_test$POINT_X))
 sum(is.na(crash_test$POINT_Y))
 sum(is.na(crash_test$LATITUDE))
 sum(is.na(crash_test$LONGITUDE))
 
-# Use POINT_X and POINT_Y as the lat/long (as it has far fewer NAs than the LAT and LONG columns), drop NAs, convert df to sf, set crs to match that of ejscreen (3857)
-crashes <- read_csv(here::here("eds223-hw2", "data", "SWITRS_LA", "crashes.csv")) |> 
+# Import the crashes data as sf
+crashes <- read_csv("/Users/courtneylorey/Desktop/GitHub/eds223/eds223-hw2/data/SWITRS_LA/Crashes.csv") |> 
   as_tibble() |> 
-  drop_na(POINT_X) |> 
+  drop_na(POINT_X) |>
   drop_na(POINT_Y) |> 
   rename(long = POINT_X,
-          lat = POINT_Y) |> 
+          lat = POINT_Y) |> # Use POINT_X and POINT_Y as lat/long (as it has far fewer NAs)
   st_as_sf(coords = c("long", "lat"), crs = 4326, remove = FALSE) |> 
-  st_transform(crs = 3857)
+  st_transform(crs = 3857) # Set crs to match that of redline (3857)
 ```
 
 ## Visualize data
@@ -229,7 +227,7 @@ theme_bw() +
 labs(x = "HOLC grade", y = "Percent accidents", title = "Percentage of pedestrian and bike crashes and fatalities by HOLC grade", fill = "Grade", caption = "Figure 4")
 ```
 
-## Visualization interpretation
+## Interpretation
 
 Figure 4 shows that for pedestrian and bike accidents (including crashes and fatalities) that occurred in Los Angeles within a given HOLC-graded area between 2020 and 2025, the largest proportion of accidents occured within HOLC grades C (27%) and D (14%). HOLC grades C and D experienced significantly more accidents than HOLC grades A and B. This demonstrates an outsized occurence of accidents in areas with lower HOLC grades, indicating that these redlined neighborhoods are at a higher risk of accidents, and that highly graded areas are safer from accidents. This is consistent with the finding that historical redlining continues to have detrimental impacts on present-day community health.
 
