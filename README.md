@@ -7,7 +7,7 @@ This repository contains data and code to explore and visualize the legacy of hi
 This repository is structured as follows:
 
 ```
-.
+eds223-hw2
 ├── data
 │   ├── ejscreen
 │   ├── mapping-inequality
@@ -15,7 +15,6 @@ This repository is structured as follows:
 ├── hw2.pdf
 ├── hw2.qmd
 └── README.md
-
 ```
 
 ## Data Access
@@ -26,7 +25,6 @@ The data used in this project originated from the following sources:
 2. The United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool. As the EPA EJScreen tool and official website is no longer available, data was accessed from a Google Drive folder provided on the [EDS 223 Course Website](https://eds-223-geospatial.github.io/assignments/HW2V2.html). It can be downloaded using [this link.](https://drive.google.com/file/d/14x1CTz3ZUJdm8_8625OGM5W32TkcCife/view?usp=sharing) 
 
 3. The Statewide Integrated Traffice Records System (SWITRS) database, which collects and processes data gathered from collisions. The data is hosted on the [Transportation Information Mapping System (TIMS)](https://tims.berkeley.edu/), developed by UC Berkley SafeTREC. The specific dataset used in this exercise can be downloaded using [this link.](https://drive.google.com/file/d/14x1CTz3ZUJdm8_8625OGM5W32TkcCife/view?usp=sharing)
-
 
 ## Authors
 [Courtney Lorey](https://github.com/cllorey/cll214final), Bren School of Environmental Science & Management, University of California, Santa Barbara

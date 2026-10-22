@@ -63,7 +63,7 @@ if(st_crs(redline) == st_crs(ejscreen)) {
 ## Visualize data
 
 ```{r}
-  # Create a map of historical redlining neighborhoods, including neighborhoods colored by HOLC grade, an appropriate base map, a clear title and legend 
+  # Visualize historical redlining neighborhoods
 
 tm_shape(redline) +
   tm_basemap("OpenStreetMap") +
@@ -117,6 +117,8 @@ avg_life_exp <-  la_redline |>
   summarise(avg_pct_life_exp = mean(LIFEEXPPCT, na.rm = TRUE))
 
 # Visualize average conditions by grade
+
+# Percent low income by HOLC grade
 ggplot(
   data = avg_low_inc,
   mapping = aes(
@@ -129,6 +131,7 @@ geom_col() +
 theme_bw() +
 labs(x = "HOLC grade", y = "Mean percent low income", title = "Percent low income by HOLC grade", caption = "Figure 1")
 
+# Percent PM 2.5 by HOLC grade
 ggplot(
   data = avg_pm25,
   mapping = aes(
@@ -141,6 +144,7 @@ geom_col() +
 theme_bw() +
 labs(x = "HOLC grade", y = "Mean percent PM 2.5", title = "Percent PM 2.5 by HOLC grade", caption = "Figure 2")
 
+# Percent low life expectancy by HOLC grade
 ggplot(
   data = avg_life_exp,
   mapping = aes(
@@ -203,7 +207,7 @@ redline_crashes <- st_join(crashes, redline)
 filtered_redline_crash <- redline_crashes |> 
   st_drop_geometry() |> 
   mutate(
-    grade = ifelse(is.na(grade), "HOLC Grade Missing", grade)
+    grade = ifelse(is.na(grade), "No grade", grade)
   ) |> 
   select(grade, long, lat, PEDESTRIAN_ACCIDENT, BICYCLE_ACCIDENT) |> 
   filter(PEDESTRIAN_ACCIDENT == "Y" | BICYCLE_ACCIDENT == "Y") |> 
@@ -224,7 +228,7 @@ ggplot(
 ) + 
 geom_col() + 
 theme_bw() +
-labs(x = "HOLC grade", y = "Percent accidents", title = "Percentage of pedestrian and bike crashes and fatalities by HOLC grade", fill = "Grade", caption = "Figure 4")
+labs(x = "HOLC grade", y = "% accidents", title = "Percentage of pedestrian & bike accidents by HOLC grade", fill = "Grade", caption = "Figure 4")
 ```
 
 ## Interpretation
